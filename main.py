@@ -217,10 +217,9 @@ def anz(video, interval, ran_s, ran_f):
     print(f"\nRed area results saved to {output_filename}")
 
 
-video = "T=2 0.4g 20mL 중 10mL.MOV"
+video = input("video name: ")
 
 trim(video, 60)
 crop(video)
 anz(video, 0.5, [0, 0, 100], [100, 100, 255])
 print("Finished")
-
