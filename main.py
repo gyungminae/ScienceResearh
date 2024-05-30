@@ -192,9 +192,18 @@ def anz(video, interval, ran_s, ran_f):
         if not ret:
             break
 
-        total_pixels = frame.shape[0] * frame.shape[1]
+        hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
 
-        mask = cv2.inRange(frame, lower_red, upper_red)
+        lower_red1 = np.array([0, 10, 10])
+        upper_red1 = np.array([50, 255, 255])
+        lower_red2 = np.array([130, 10, 10])
+        upper_red2 = np.array([180, 255, 255])
+
+        mask1 = cv2.inRange(hsv, lower_red1, upper_red1)
+        mask2 = cv2.inRange(hsv, lower_red2, upper_red2)
+        mask = cv2.bitwise_or(mask1, mask2)
+
+        total_pixels = frame.shape[0] * frame.shape[1]
 
         red_area_pixels = cv2.countNonZero(mask)
 
@@ -221,5 +230,6 @@ video = input("video name: ")
 
 trim(video, 60)
 crop(video)
-anz(video, 0.5, [0, 0, 100], [100, 100, 255])
+
+anz(video, 0.5, [0, 70, 50], [0, 70, 50])
 print("Finished")
