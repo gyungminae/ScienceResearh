@@ -4,7 +4,6 @@ import numpy as np
 import pandas as pd
 import sys
 
-
 def trim(video, length):
     video_path = "videos/" + video
     video_trimed = "trimmed/" + video.split(".")[0] + ".avi"
@@ -30,7 +29,7 @@ def trim(video, length):
         resized_frame = cv2.resize(frame, (display_width, display_height))
         cv2.imshow("Video", resized_frame)
 
-        if cv2.waitKey(1) & 0xFF == ord(' '):
+        if cv2.waitKey(1) & 0xFF == ord(" "):
             start_time = cap.get(cv2.CAP_PROP_POS_MSEC) / 1000.0
             break
 
@@ -80,7 +79,6 @@ def trim(video, length):
 def crop(video):
     global ref_point, cropping, click_count, scale_x, scale_y, frame_display
 
-    video_path = "videos/" + video
     video_trimed = "trimmed/" + video.split(".")[0] + ".avi"
     video_cropped = "cropped/" + video.split(".")[0] + ".avi"
 
@@ -168,15 +166,18 @@ def click_and_crop(event, x, y, flags, param):
             cv2.imshow("image", frame_display)
 
 
-def anz(video, interval, ran_s, ran_f):
+import cv2
+import numpy as np
+import pandas as pd
+import os
+
+def anz(video, interval, pixels):
     video_path = "videos/" + video
-    video_trimed = "trimmed/" + video.split(".")[0] + ".avi"
     video_cropped = "cropped/" + video.split(".")[0] + ".avi"
 
     data_folder = "./data"
-
-    lower_red = np.array(ran_s)
-    upper_red = np.array(ran_f)
+    frames_folder = "./frames"
+    os.makedirs(frames_folder, exist_ok=True)
 
     cap = cv2.VideoCapture(video_cropped)
 
@@ -186,6 +187,8 @@ def anz(video, interval, ran_s, ran_f):
 
     results = []
     current_time = 0
+
+    frame_count = 0  # To keep track of frame count
 
     while cap.isOpened():
         ret, frame = cap.read()
@@ -204,32 +207,35 @@ def anz(video, interval, ran_s, ran_f):
         mask = cv2.bitwise_or(mask1, mask2)
 
         total_pixels = frame.shape[0] * frame.shape[1]
-
         red_area_pixels = cv2.countNonZero(mask)
-
         results.append([current_time, red_area_pixels, red_area_pixels / total_pixels, total_pixels])
 
-        cap.set(cv2.CAP_PROP_POS_MSEC, (current_time + interval) * 1000)
+        if pixels:
+            # Save the current frame with only red areas in grayscale
+            gray_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+            red_only_frame = cv2.bitwise_and(gray_frame, gray_frame, mask=mask)
+            frame_filename = os.path.join(frames_folder, f"frame_{frame_count}.png")
+            cv2.imwrite(frame_filename, red_only_frame)
 
+        cap.set(cv2.CAP_PROP_POS_MSEC, (current_time + interval) * 1000)
         current_time += interval
+        frame_count += 1
 
         progress = int((current_time / total_duration) * 100)
-        print(f"\rAanalyzing video: {progress}% complete", end="")
+        print(f"\rAnalyzing video: {progress}% complete", end="")
 
     df = pd.DataFrame(results, columns=["Time (s)", "Red Area (pixels)", "Red Area Ratio", "Total Pixels"])
-
     output_filename = os.path.join(data_folder, os.path.basename(video_path).split(".")[0] + ".xlsx")
     df.to_excel(output_filename, index=False)
 
     cap.release()
-
     print(f"\nRed area results saved to {output_filename}")
+    print(f"Grayscale frames with red areas saved to {frames_folder}")
 
 
 video = input("video name: ")
 
 trim(video, 60)
 crop(video)
-
-anz(video, 0.5, [0, 70, 50], [0, 70, 50])
+anz(video, 0.5, False)
 print("Finished")
